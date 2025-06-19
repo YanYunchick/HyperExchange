@@ -1,7 +1,74 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@inject IWSConnector Connector;
+@implements IDisposable;
 
-<PageTitle>Home</PageTitle>
+<h3>New Trades</h3>
+<button class="btn btn-danger" @onclick="Unsubscribe">Unsubscribe</button>
+<table class="table">
+	<thead>
+		<tr>
+			<th>Id</th>
+			<th>Pair</th>
+			<th>Price</th>
+			<th>Amount</th>
+			<th>Side</th>
+			<th>Time</th>
+		</tr>
+	</thead>
+	<tbody>
+		@foreach (var trade in trades)
+		{
+			<tr>
+				<td>@trade.Id</td>
+				<td>@trade.Pair</td>
+				<td>@trade.Price</td>
+				<td>@trade.Amount</td>
+				<td>@trade.Side</td>
+				<td>@trade.Time.ToString("yyyy-MM-dd HH:mm:ss")</td>
+			</tr>
+		}
+	</tbody>
+</table>
 
-<h1>Hello, world!</h1>
+@code {
+	private CancellationTokenSource source = new CancellationTokenSource();
+	private List<Trade> trades = new();
 
-Welcome to your new app.
+	protected override async Task OnInitializedAsync()
+	{
+		await Connector.ConnectAsync(source.Token);
+		Connector.NewBuyTrade += OnNewBuyTrade;
+		Connector.NewSellTrade += OnNewSellTrade;
+
+		await Connector.SubscribeTrades("BTCUSD", source.Token);
+	}
+
+	private void OnNewBuyTrade(Trade trade)
+	{
+		trades.Add(trade);
+		InvokeAsync(StateHasChanged);
+	}
+
+	private void OnNewSellTrade(Trade trade)
+	{
+		trades.Add(trade);
+		InvokeAsync(StateHasChanged);
+	}
+
+	private async Task Unsubscribe()
+	{
+		Connector.NewBuyTrade -= OnNewBuyTrade;
+		Connector.NewSellTrade -= OnNewSellTrade;
+
+		await Connector.UnsubscribeTrades("BTCUSD", source.Token);
+
+		Console.WriteLine("Unsubscribed from trades");
+	}
+
+	public void Dispose()
+	{
+		source.Cancel();
+		source.Dispose();
+	}
+}
