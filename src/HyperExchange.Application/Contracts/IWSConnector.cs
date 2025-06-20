@@ -10,8 +10,12 @@ namespace HyperExchange.Application.Contracts;
 
 public interface IWSConnector
 {
+    // Добавил CancellationToken для всех методов.
+    // Убрал неиспользуемые в API параметры
+
     event Action<Trade> NewBuyTrade;
     event Action<Trade> NewSellTrade;
+
     Task SubscribeTrades(string pair, CancellationToken cancellationToken);
     Task UnsubscribeTrades(string pair, CancellationToken cancellationToken);
 
@@ -22,6 +26,7 @@ public interface IWSConnector
         CancellationToken cancellationToken);
     Task UnsubscribeCandles(string pair, CancellationToken cancellationToken);
 
+    // Добавил методы для подключения и отключения вебсокета
     Task ConnectAsync(CancellationToken cancellationToken);
     Task DisconnectAsync(CancellationToken cancellationToken);
 }
