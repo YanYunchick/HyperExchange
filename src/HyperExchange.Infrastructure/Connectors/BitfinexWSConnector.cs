@@ -13,7 +13,7 @@ using HyperExchange.Infrastructure.Utils;
 
 namespace HyperExchange.Infrastructure.Connectors;
 
-public class BitfinexWSConnector : IWSConnector
+public class BitfinexWSConnector : IWSConnector, IDisposable
 {
     private ClientWebSocket _webSocket = new ClientWebSocket();
     private readonly Uri _uri = new("wss://api-pub.bitfinex.com/ws/2");
@@ -254,5 +254,10 @@ public class BitfinexWSConnector : IWSConnector
                 }
             }
         }
+    }
+
+    public void Dispose()
+    {
+        _webSocket.Dispose();
     }
 }

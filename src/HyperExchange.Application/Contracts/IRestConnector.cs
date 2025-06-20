@@ -18,4 +18,6 @@ public interface IRestConnector
         DateTimeOffset? from, 
         DateTimeOffset? to = null, 
         long? count = 0);
+
+    Task<Dictionary<string, decimal>> GetTickersAsync(string[] pairs);
 }

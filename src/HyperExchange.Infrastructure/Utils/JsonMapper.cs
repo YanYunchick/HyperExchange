@@ -65,4 +65,21 @@ public static class JsonMapper
 
         return candleList;
     }
+
+    public static Dictionary<string, decimal> ConvertTickersPriceToCollection(string json)
+    {
+        using var jsonDocument = JsonDocument.Parse(json);
+        var root = jsonDocument.RootElement;
+        var prices = new Dictionary<string, decimal>();
+
+        foreach (var arrayElement in root.EnumerateArray())
+        {
+            var pair = arrayElement[0].GetString()!;
+            var price = arrayElement[7].GetDecimal();
+
+            prices.Add(pair, price);
+        }
+
+        return prices;
+    }
 }
