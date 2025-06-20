@@ -1,4 +1,6 @@
 using HyperExchange.Application.Contracts;
+using HyperExchange.Application.Services;
+using HyperExchange.Domain.Contracts;
 using HyperExchange.Infrastructure.Connectors;
 using HyperExchange.WebUI.Components;
 
@@ -12,6 +14,7 @@ builder.Services.AddHttpClient();
 
 builder.Services.AddScoped<IWSConnector, BitfinexWSConnector>();
 builder.Services.AddScoped<IRestConnector, BitfinexRestConnector>();
+builder.Services.AddScoped<IWalletService, WalletService>();
 
 var app = builder.Build();
 

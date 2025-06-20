@@ -2,7 +2,28 @@
 @rendermode InteractiveServer
 @inject IWSConnector WSConnector;
 @inject IRestConnector RestConnector;
+@inject IWalletService WalletService;
 @implements IDisposable;
+
+
+<h3>Wallet</h3>
+<table class="table">
+	<thead>
+		<tr>
+			<th>Currency</th>
+			<th>Total Balance</th>
+		</tr>
+	</thead>
+	<tbody>
+		@foreach (var balance in balances)
+		{
+			<tr>
+				<td>@balance.CurrencyCode</td>
+				<td>@balance.totalBalance</td>
+			</tr>
+		}
+	</tbody>
+</table>
 
 <h3>Websocket Trades</h3>
 <button class="btn btn-danger" @onclick="UnsubscribeTrade">Unsubscribe</button>
@@ -137,11 +158,14 @@
 	private List<Trade> restTrades = new();
 	private List<Candle> websocketCandles = new();
 	private List<Candle> restCandles = new();
+	private List<(string CurrencyCode, decimal totalBalance)> balances = new();
 
 	private bool _isConnected = false;
 
 	protected override async Task OnInitializedAsync()
 	{
+		balances = await WalletService.CalculateTotalBalanceAsync();
+
 		if (!_isConnected)
 		{
 			await WSConnector.ConnectAsync(source.Token);
