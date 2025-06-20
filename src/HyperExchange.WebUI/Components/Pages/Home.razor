@@ -4,36 +4,72 @@
 @implements IDisposable;
 
 <h3>New Trades</h3>
-<button class="btn btn-danger" @onclick="Unsubscribe">Unsubscribe</button>
-<table class="table">
-	<thead>
-		<tr>
-			<th>Id</th>
-			<th>Pair</th>
-			<th>Price</th>
-			<th>Amount</th>
-			<th>Side</th>
-			<th>Time</th>
-		</tr>
-	</thead>
-	<tbody>
-		@foreach (var trade in trades)
-		{
+<button class="btn btn-danger" @onclick="UnsubscribeTrade">Unsubscribe</button>
+<div style="max-height: 200px; overflow: auto">
+	<table class="table table-striped">
+		<thead>
 			<tr>
-				<td>@trade.Id</td>
-				<td>@trade.Pair</td>
-				<td>@trade.Price</td>
-				<td>@trade.Amount</td>
-				<td>@trade.Side</td>
-				<td>@trade.Time.ToString("yyyy-MM-dd HH:mm:ss")</td>
+				<th>Id</th>
+				<th>Pair</th>
+				<th>Price</th>
+				<th>Amount</th>
+				<th>Side</th>
+				<th>Time</th>
 			</tr>
-		}
-	</tbody>
-</table>
+		</thead>
+		<tbody>
+			@foreach (var trade in trades)
+			{
+				<tr>
+					<td>@trade.Id</td>
+					<td>@trade.Pair</td>
+					<td>@trade.Price</td>
+					<td>@trade.Amount</td>
+					<td>@trade.Side</td>
+					<td>@trade.Time.ToString("yyyy-MM-dd HH:mm:ss")</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+</div>
 
+<h3>Candle Data</h3>
+<button class="btn btn-danger" @onclick="UnsubscribeCandle">Unsubscribe</button>
+<div style="max-height: 200px; overflow: auto">
+	<table class="table table-striped">
+		<thead>
+			<tr>
+				<th>Pair</th>
+				<th>Open Price</th>
+				<th>High Price</th>
+				<th>Low Price</th>
+				<th>Close Price</th>
+				<th>Total Price</th>
+				<th>Total Volume</th>
+				<th>Open Time</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var candle in candles)
+			{
+				<tr>
+					<td>@candle.Pair</td>
+					<td>@candle.OpenPrice</td>
+					<td>@candle.HighPrice</td>
+					<td>@candle.LowPrice</td>
+					<td>@candle.ClosePrice</td>
+					<td>@candle.TotalPrice</td>
+					<td>@candle.TotalVolume</td>
+					<td>@candle.OpenTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+</div>
 @code {
 	private CancellationTokenSource source = new CancellationTokenSource();
 	private List<Trade> trades = new();
+	private List<Candle> candles = new();
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -42,6 +78,10 @@
 		Connector.NewSellTrade += OnNewSellTrade;
 
 		await Connector.SubscribeTrades("BTCUSD", source.Token);
+
+		Connector.CandleSeriesProcessing += OnNewCandle;
+
+		await Connector.SubscribeCandles("BTCUSD", 60, source.Token);
 	}
 
 	private void OnNewBuyTrade(Trade trade)
@@ -56,7 +96,13 @@
 		InvokeAsync(StateHasChanged);
 	}
 
-	private async Task Unsubscribe()
+	private void OnNewCandle(Candle candle)
+	{
+		candles.Add(candle);
+		InvokeAsync(StateHasChanged);
+	}
+
+	private async Task UnsubscribeTrade()
 	{
 		Connector.NewBuyTrade -= OnNewBuyTrade;
 		Connector.NewSellTrade -= OnNewSellTrade;
@@ -64,6 +110,15 @@
 		await Connector.UnsubscribeTrades("BTCUSD", source.Token);
 
 		Console.WriteLine("Unsubscribed from trades");
+	}
+
+	private async Task UnsubscribeCandle()
+	{
+		Connector.CandleSeriesProcessing -= OnNewCandle;
+
+		await Connector.UnsubscribeCandles("BTCUSD", source.Token);
+
+		Console.WriteLine("Unsubscribed from candles");
 	}
 
 	public void Dispose()

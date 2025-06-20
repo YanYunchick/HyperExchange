@@ -19,10 +19,7 @@ public interface IWSConnector
     Task SubscribeCandles(
         string pair, 
         int periodInSec,
-        CancellationToken cancellationToken,
-        DateTimeOffset? from = null, 
-        DateTimeOffset? to = null, 
-        long? count = 0);
+        CancellationToken cancellationToken);
     Task UnsubscribeCandles(string pair, CancellationToken cancellationToken);
 
     Task ConnectAsync(CancellationToken cancellationToken);

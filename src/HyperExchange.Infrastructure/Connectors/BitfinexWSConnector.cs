@@ -37,20 +37,40 @@ public class BitfinexWSConnector : IWSConnector, IDisposable
         }
     }
 
-    public Task SubscribeCandles(
+    public async Task SubscribeCandles(
         string pair, 
         int periodInSec, 
-        CancellationToken cancellationToken,
-        DateTimeOffset? from = null, 
-        DateTimeOffset? to = null, 
-        long? count = 0)
+        CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var period = PeriodConverter.ConvertBitfinexPeriod(periodInSec);
+
+        var requestMsg = JsonSerializer.Serialize(new
+        {
+            @event = "subscribe",
+            channel = "candles",
+            key = $"trade:{period}:t{pair}"
+        });
+
+        await SendMessageAsync(requestMsg, cancellationToken);
     }
 
-    public Task UnsubscribeCandles(string pair, CancellationToken cancellationToken)
+    public async Task UnsubscribeCandles(string pair, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        if (_webSocket.State != WebSocketState.Open)
+        {
+            return;
+        }
+
+        if (!_candleChannels.TryGetValue(pair, out var channelId))
+            throw new InvalidOperationException($"The channel for candle({pair}) not established.");
+
+        var requestMsg = JsonSerializer.Serialize(new
+        {
+            @event = "unsubscribe",
+            chanId = channelId
+        });
+        _candleChannels.Remove(pair);
+        await SendMessageAsync(requestMsg, cancellationToken);
     }
 
     public async Task SubscribeTrades(string pair, CancellationToken cancellationToken)
@@ -68,8 +88,6 @@ public class BitfinexWSConnector : IWSConnector, IDisposable
         });
 
         await SendMessageAsync(requestMsg, cancellationToken);
-
-        _ = ReceiveMessagesAsync(cancellationToken);
     }
 
     public async Task UnsubscribeTrades(string pair, CancellationToken cancellationToken)
@@ -99,7 +117,7 @@ public class BitfinexWSConnector : IWSConnector, IDisposable
 
     private async Task ReceiveMessagesAsync(CancellationToken cancellationToken)
     {
-        var buffer = new byte[1024 * 8];
+        var buffer = new byte[1024 * 32];
         while (_webSocket.State == WebSocketState.Open)
         {
             var result = await _webSocket.ReceiveAsync(buffer, cancellationToken);
@@ -144,7 +162,8 @@ public class BitfinexWSConnector : IWSConnector, IDisposable
         }
         else if (_candleChannels.ContainsValue(channelId))
         {
-            // todo ProcessCandlesMessage();
+            var pair = _candleChannels.FirstOrDefault(x => x.Value == channelId).Key;
+            ProcessCandlesMessage(root[1], pair);
         }
     }
 
@@ -180,6 +199,27 @@ public class BitfinexWSConnector : IWSConnector, IDisposable
         }
     }
 
+    private void ProcessCandlesMessage(JsonElement candleData, string pair)
+    {
+        if (candleData.ValueKind == JsonValueKind.Array && candleData.GetArrayLength() > 0)
+        {
+            if (candleData[0].ValueKind == JsonValueKind.Array)
+            {
+                foreach (var candle in candleData
+                            .EnumerateArray()
+                            .Select(candleJson => JsonMapper.ConvertJsonToCandle(pair, candleJson)))
+                {
+                    CandleSeriesProcessing?.Invoke(candle);
+                }
+            }
+            else
+            {
+                var candle = JsonMapper.ConvertJsonToCandle(pair, candleData);
+                CandleSeriesProcessing?.Invoke(candle);
+            }
+        }
+    }
+
     private void ProcessInfoMessage(JsonElement root)
     {
         if (root.TryGetProperty("event", out var eventProperty))
@@ -204,7 +244,7 @@ public class BitfinexWSConnector : IWSConnector, IDisposable
                             if (root.TryGetProperty("key", out var keyProperty))
                             {
                                 var candlePair = keyProperty.GetString()!.Split(':')[2];
-                                _candleChannels[candlePair] = chanId;
+                                _candleChannels[candlePair.Substring(1)] = chanId;
                             }
                             break;
                     }

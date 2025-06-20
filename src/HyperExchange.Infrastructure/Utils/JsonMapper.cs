@@ -22,4 +22,19 @@ public static class JsonMapper
             Pair = pair
         };
     }
+
+    public static Candle ConvertJsonToCandle(string pair, JsonElement json)
+    {
+        return new Candle()
+        {
+            OpenTime = DateTimeOffset.FromUnixTimeMilliseconds(json[0].GetInt64()),
+            OpenPrice = json[1].GetDecimal(),
+            ClosePrice = json[2].GetDecimal(),
+            HighPrice = json[3].GetDecimal(),
+            LowPrice = json[4].GetDecimal(),
+            TotalVolume = json[5].GetDecimal(),
+            TotalPrice = json[5].GetDecimal() * json[2].GetDecimal(),
+            Pair = pair
+        };
+    }
 }
