@@ -13,7 +13,7 @@ using HyperExchange.Infrastructure.Utils;
 
 namespace HyperExchange.Infrastructure.Connectors;
 
-public class BitfinexWSConnector : IWSConnector, IDisposable
+public class BitfinexWSConnector : IWSConnector
 {
     private ClientWebSocket _webSocket = new ClientWebSocket();
     private readonly Uri _uri = new("wss://api-pub.bitfinex.com/ws/2");
@@ -23,8 +23,11 @@ public class BitfinexWSConnector : IWSConnector, IDisposable
     public event Action<Trade>? NewSellTrade;
     public event Action<Candle>? CandleSeriesProcessing;
 
+
     public async Task ConnectAsync(CancellationToken cancellationToken)
     {
+        if (_webSocket.State == WebSocketState.Open || _webSocket.State == WebSocketState.Connecting)
+            return;
         await _webSocket.ConnectAsync(_uri, cancellationToken);
         _ = ReceiveMessagesAsync(cancellationToken);
     }
@@ -251,10 +254,5 @@ public class BitfinexWSConnector : IWSConnector, IDisposable
                 }
             }
         }
-    }
-
-    public void Dispose()
-    {
-        _webSocket.Dispose();
     }
 }

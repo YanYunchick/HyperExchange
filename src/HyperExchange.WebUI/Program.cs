@@ -8,7 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddHttpClient();
+
 builder.Services.AddScoped<IWSConnector, BitfinexWSConnector>();
+builder.Services.AddScoped<IRestConnector, BitfinexRestConnector>();
 
 var app = builder.Build();
 

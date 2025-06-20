@@ -37,4 +37,32 @@ public static class JsonMapper
             Pair = pair
         };
     }
+
+    public static IEnumerable<Trade> ConvertTradesToCollection(string pair, string json)
+    {
+        using var jsonDocument = JsonDocument.Parse(json);
+        var root = jsonDocument.RootElement;
+        var tradeList = new List<Trade>();
+
+        if (root.ValueKind == JsonValueKind.Array)
+        {
+            tradeList.AddRange(root.EnumerateArray().Select(tradeJson => ConvertJsonToTrade(pair, tradeJson)));
+        }
+
+        return tradeList;
+    }
+
+    public static IEnumerable<Candle> ConvertCandlesToCollection(string pair, string json)
+    {
+        using var jsonDocument = JsonDocument.Parse(json);
+        var root = jsonDocument.RootElement;
+        var candleList = new List<Candle>();
+
+        if (root.ValueKind == JsonValueKind.Array)
+        {
+            candleList.AddRange(root.EnumerateArray().Select(candleJson => ConvertJsonToCandle(pair, candleJson)));
+        }
+
+        return candleList;
+    }
 }
