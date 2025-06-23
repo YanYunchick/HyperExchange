@@ -26,7 +26,7 @@
 </table>
 
 <h3>Websocket Trades</h3>
-<button class="btn btn-danger" @onclick="UnsubscribeTrade">Unsubscribe</button>
+<button class="btn btn-danger" @onclick="UnsubscribeTrade" disabled="@(!isTradeSubscribed)">Unsubscribe</button>
 <div style="max-height: 200px; overflow: auto">
 	<table class="table table-striped">
 		<thead>
@@ -56,7 +56,7 @@
 </div>
 
 <h3>Websocket Candles</h3>
-<button class="btn btn-danger" @onclick="UnsubscribeCandle">Unsubscribe</button>
+<button class="btn btn-danger" @onclick="UnsubscribeCandle" disabled="@(!isCandleSubscribed)">Unsubscribe</button>
 <div style="max-height: 200px; overflow: auto">
 	<table class="table table-striped">
 		<thead>
@@ -161,6 +161,8 @@
 	private List<(string CurrencyCode, decimal totalBalance)> balances = new();
 
 	private bool _isConnected = false;
+	private bool isTradeSubscribed = false;
+	private bool isCandleSubscribed = false;
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -175,6 +177,8 @@
 		WSConnector.NewBuyTrade += OnNewBuyTrade;
 		WSConnector.NewSellTrade += OnNewSellTrade;
 		WSConnector.CandleSeriesProcessing += OnNewCandle;
+		isCandleSubscribed = true;
+		isTradeSubscribed = true;
 
 		await WSConnector.SubscribeTrades("BTCUSD", source.Token);
 		await WSConnector.SubscribeCandles("BTCUSD", 60, source.Token);
@@ -200,21 +204,27 @@
 
 	private async Task UnsubscribeTrade()
 	{
-		WSConnector.NewBuyTrade -= OnNewBuyTrade;
-		WSConnector.NewSellTrade -= OnNewSellTrade;
+		if (isTradeSubscribed)
+		{
+			WSConnector.NewBuyTrade -= OnNewBuyTrade;
+			WSConnector.NewSellTrade -= OnNewSellTrade;
 
-		await WSConnector.UnsubscribeTrades("BTCUSD", source.Token);
-
-		Console.WriteLine("Unsubscribed from trades");
+			await WSConnector.UnsubscribeTrades("BTCUSD", source.Token);
+			isTradeSubscribed = false;
+			Console.WriteLine("Unsubscribed from trades");
+		}
 	}
 
 	private async Task UnsubscribeCandle()
 	{
-		WSConnector.CandleSeriesProcessing -= OnNewCandle;
+		if (isCandleSubscribed)
+		{
+			WSConnector.CandleSeriesProcessing -= OnNewCandle;
 
-		await WSConnector.UnsubscribeCandles("BTCUSD", source.Token);
-
-		Console.WriteLine("Unsubscribed from candles");
+			await WSConnector.UnsubscribeCandles("BTCUSD", source.Token);
+			isCandleSubscribed = false;
+			Console.WriteLine("Unsubscribed from candles");
+		}
 	}
 
 	private async Task GetTrades()
